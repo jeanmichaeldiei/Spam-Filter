@@ -1,11 +1,9 @@
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.Map;
 
 public class NBClassifier {
     private HashMap<String,Double> spamHM;      //Hashmap containing P(word|spam) for each word that appears in spam messages
@@ -43,36 +41,14 @@ public class NBClassifier {
                 String text = example[1];
                 ArrayList<String> words = parseText(text); //Array of words in text example
 
-                HashMap<String,Double> hm = hamHM;
-                if(label.equalsIgnoreCase("spam")) {
+                HashMap<String, Double> hm = hamHM;
+                if (label.equalsIgnoreCase("spam")) {
                     hm = spamHM;
                     spamCount++;
-                }else hamCount++;
+                } else hamCount++;
 
-                for (String word: words) {
+                for (String word : words) {
                     updateHM(hm, word);
-                }
-
-                double spamSum = 0.0;
-                for (double f : spamHM.values()) {
-                    spamSum += f;
-                }
-
-                double hamSum = 0.0;
-                for (double f : hamHM.values()) {
-                    hamSum += f;
-                }
-
-                for (Map.Entry<String,Double> entry : spamHM.entrySet()) {
-                    String key = entry.getKey();
-                    double value = entry.getValue();
-                    spamHM.put(key,(double)(value/spamSum));
-                }
-
-                for (Map.Entry<String,Double> entry : hamHM.entrySet()) {
-                    String key = entry.getKey();
-                    double value = entry.getValue();
-                    hamHM.put(key, (double) (value / hamSum));
                 }
             }
         } catch (IOException e) {
@@ -115,33 +91,37 @@ public class NBClassifier {
 
         double condProbHam = 1.0;
         double condProbSpam = 1.0;
-
         ArrayList<String> words = parseText(text);
 
-        for (Map.Entry<String,Double> entry : hamHM.entrySet()) {
-            String key = entry.getKey();
-            if(words.contains(key)) {
-                double value = entry.getValue();
-                System.out.println(value);
-                condProbHam*=value;
+        double spamSum = 0.0;
+        double hamSum = 0.0;
+
+        for(String word : words) {
+            double value = 0;
+            if(hamHM.containsKey(word)) {
+                value = hamHM.get(word);
             }
+            hamSum += value;
+            condProbHam*=(value+1);
         }
 
-        for (Map.Entry<String,Double> entry : spamHM.entrySet()) {
-            String key = entry.getKey();
-            if(words.contains(key)) {
-                double value = entry.getValue();
-                condProbSpam*=value;
+        for(String word : words) {
+            double value = 0;
+            if(spamHM.containsKey(word)) {
+                value = spamHM.get(word);
             }
-
+            spamSum += value;
+            condProbSpam*=(value+1);
         }
+
+        condProbHam/=(hamSum+1);
+        condProbSpam/=(spamSum+1);
+
         double finalHam = ham_prior*condProbHam;
         double finalSpam = spam_prior*condProbSpam;
-        System.out.printf("Spam: %f\nHam: %f\n",finalSpam, finalHam);
 
         if(finalHam > finalSpam) {
             return "ham";
         }else return "spam";
-        //return null;
     }
 }
